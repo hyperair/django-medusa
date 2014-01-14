@@ -14,12 +14,18 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         StaticSiteRenderer.initialize_output()
 
+        renderers = [Renderer() for Renderer in get_static_renderers()]
+        for renderer in renderers:
+            # memoize this first to avoid script prefix pollution
+            renderer.paths
+
+        # Set script prefix here
         url_prefix = getattr(settings, 'MEDUSA_URL_PREFIX')
         if url_prefix is not None:
             set_script_prefix(url_prefix)
 
-        for Renderer in get_static_renderers():
-            r = Renderer()
-            r.generate()
+        # And now generate stuff
+        for renderer in renderers:
+            renderer.generate()
 
         StaticSiteRenderer.finalize_output()
