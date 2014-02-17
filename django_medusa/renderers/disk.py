@@ -72,7 +72,7 @@ class DiskStaticSiteRenderer(BaseStaticSiteRenderer):
             pool.map_async(
                 _disk_render_path,
                 ((None, path, None) for path in self.paths),
-                chunksize=5
+                chunksize=1
             )
             pool.close()
             pool.join()
