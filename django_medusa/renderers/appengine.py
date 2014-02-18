@@ -174,7 +174,7 @@ class GAEStaticSiteRenderer(BaseStaticSiteRenderer):
             handlers = pool.map(
                 _gae_render_path,
                 ((None, path, None) for path in self.paths),
-                chunksize=5
+                chunksize=1
             )
             pool.close()
             pool.join()

@@ -147,7 +147,7 @@ class S3StaticSiteRenderer(BaseStaticSiteRenderer):
             path_tuples = pool.map(
                 _s3_render_path,
                 ((None, None, path, None) for path in self.paths),
-                chunksize=5
+                chunksize=1
             )
             pool.close()
             pool.join()
