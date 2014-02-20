@@ -132,29 +132,8 @@ class S3StaticSiteRenderer(BaseStaticSiteRenderer):
         self.bucket.configure_website("index.html", "500.html")
         self.server_root_path = self.bucket.get_website_endpoint()
 
-        self.generated_paths = []
-        if getattr(settings, "MEDUSA_MULTITHREAD", False):
-            # Upload up to ten items at once via `multiprocessing`.
-            from multiprocessing import Pool
-            import itertools
-
-            print "Uploading with up to 10 upload processes..."
-            pool = Pool(10)
-
-            path_tuples = pool.map(
-                _s3_render_path,
-                ((None, None, path, None) for path in self.paths),
-                chunksize=1
-            )
-            pool.close()
-            pool.join()
-
-            self.generated_paths = list(itertools.chain(*path_tuples))
-        else:
-            # Use standard, serial upload.
-            self.client = Client()
-            for path in self.paths:
-                self.generated_paths += self.render_path(path=path)
+        self.generated_paths = list(itertools.chain(
+            super(S3StaticSiteRenderer, self).generate()))
 
         type(self).all_generated_paths += self.generated_paths
 

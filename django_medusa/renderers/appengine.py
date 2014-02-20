@@ -166,27 +166,7 @@ class GAEStaticSiteRenderer(BaseStaticSiteRenderer):
     def generate(self):
         DEPLOY_DIR = settings.MEDUSA_DEPLOY_DIR
 
-        # Generate the site
-        if getattr(settings, "MEDUSA_MULTITHREAD", False):
-            # Upload up to ten items at once via `multiprocessing`.
-            from multiprocessing import Pool
-
-            print "Uploading with up to 10 upload processes..."
-            pool = Pool(10)
-
-            handlers = pool.map(
-                _gae_render_path,
-                ((None, path, None) for path in self.paths),
-                chunksize=1
-            )
-            pool.close()
-            pool.join()
-        else:
-            # Use standard, serial upload.
-            self.client = Client()
-            handlers = []
-            for path in self.paths:
-                handlers.append(self.render_path(path=path))
+        handlers = super(GAEStaticSiteRenderer, self).generate()
 
         DEPLOY_DIR = settings.MEDUSA_DEPLOY_DIR
         app_yaml = os.path.abspath(os.path.join(
