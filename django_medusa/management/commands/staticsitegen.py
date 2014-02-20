@@ -20,7 +20,7 @@ class Command(BaseCommand):
             renderer.paths
 
         # Set script prefix here
-        url_prefix = getattr(settings, 'MEDUSA_URL_PREFIX')
+        url_prefix = getattr(settings, 'MEDUSA_URL_PREFIX', None)
         if url_prefix is not None:
             set_script_prefix(url_prefix)
 
