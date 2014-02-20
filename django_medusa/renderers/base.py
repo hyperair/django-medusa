@@ -1,3 +1,6 @@
+from __future__ import print_function
+from django.conf import settings
+
 __all__ = ['COMMON_MIME_MAPS', 'BaseStaticSiteRenderer']
 
 
@@ -65,5 +68,34 @@ class BaseStaticSiteRenderer(object):
         raise NotImplementedError
 
     def generate(self):
-        for path in self.paths:
-            self.render_path(path)
+        if getattr(settings, "MEDUSA_MULTITHREAD", False):
+            from multiprocessing import Pool, cpu_count
+
+            print("Generating with up to %d processes..." % cpu_count())
+            pool = Pool(cpu_count())
+            generator = PageGenerator(self)
+
+            retval = pool.map(
+                generator,
+                ((path, None) for path in self.paths),
+                chunksize=1
+            )
+            pool.close()
+
+        else:
+            self.client = Client()
+            retval = map(self.render_path, self.paths)
+
+        return retval
+
+
+class PageGenerator(object):
+    """
+    Helper class to bounce things back into the renderer instance, since
+    multiprocessing is unable to transfer a bound method object into a pickle.
+    """
+    def __init__(self, renderer):
+        self.renderer = renderer
+
+    def __call__(self, args):
+        self.renderer.render_path(*args)
