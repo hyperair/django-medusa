@@ -1,4 +1,5 @@
 from django.conf import settings
+from django.test.client import Client
 
 __all__ = ['COMMON_MIME_MAPS', 'BaseStaticSiteRenderer']
 
@@ -17,6 +18,11 @@ COMMON_MIME_MAPS = {
     "text/css": ".css",
 }
 
+class RenderError(Exception):
+    """
+    Exception thrown during a rendering error.
+    """
+    pass
 
 class BaseStaticSiteRenderer(object):
     """
@@ -62,6 +68,34 @@ class BaseStaticSiteRenderer(object):
             p = self.get_paths()
             self._paths = p
         return p
+
+    def _render(self, path=None, view=None):
+        client = self.client
+
+        if not client:
+            client = Client()
+
+        resonse = client.get(path)
+        if response.status_code != 200:
+            raise RenderError(
+                "Path {0} did not return status 200".format(path))
+
+        return response
+
+    @staticmethod
+    def get_outpath(path, content_type):
+        # Get non-absolute path
+        path = path[1:] if path.startswith('/') else path
+
+        # Resolves to a file, not a directory
+        if not path.endswith('/'):
+            return path
+
+        mime = content_type.split(';', 1)[0]
+        ext = (COMMON_MIME_MAPS.get(mime, mimetypes.guess_extension(mime)) or
+               '.html')
+
+        return os.path.join(path, 'index' + ext)
 
     def render_path(self, path=None, view=None):
         raise NotImplementedError
