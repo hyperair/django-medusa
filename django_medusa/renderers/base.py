@@ -83,8 +83,8 @@ class BaseStaticSiteRenderer(object):
 
         return response
 
-    @staticmethod
-    def get_outpath(path, content_type):
+    @classmethod
+    def get_outpath(cls, path, content_type):
         # Get non-absolute path
         path = path[1:] if path.startswith('/') else path
 
@@ -93,10 +93,14 @@ class BaseStaticSiteRenderer(object):
             return path
 
         mime = content_type.split(';', 1)[0]
-        ext = (COMMON_MIME_MAPS.get(mime, mimetypes.guess_extension(mime)) or
-               '.html')
 
-        return os.path.join(path, 'index' + ext)
+        return os.path.join(path, cls.get_dirsuffix(content_type))
+
+    @classmethod
+    def get_dirsuffix(cls, content_type):
+        return ('index' +
+                (COMMON_MIME_MAPS.get(mime, mimetypes.guess_extension(mime)) or
+                 '.html'))
 
     def render_path(self, path=None, view=None):
         raise NotImplementedError
