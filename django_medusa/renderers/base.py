@@ -76,7 +76,7 @@ class BaseStaticSiteRenderer(object):
         if not client:
             client = Client()
 
-        resonse = client.get(path)
+        response = client.get(path)
         if response.status_code != 200:
             raise RenderError(
                 "Path {0} did not return status 200".format(path))
