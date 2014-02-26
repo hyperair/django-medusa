@@ -1,6 +1,7 @@
 from __future__ import print_function
 from django.conf import settings
 from django.test.client import Client
+import os
 
 __all__ = ['COMMON_MIME_MAPS', 'BaseStaticSiteRenderer']
 
