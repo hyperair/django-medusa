@@ -31,6 +31,8 @@ class BaseStaticSiteRenderer(object):
     into static files on the filesystem by getting the view's response
     through the Django testclient.
     """
+    def __init__(self):
+        self.client = None
 
     @classmethod
     def initialize_output(cls):
