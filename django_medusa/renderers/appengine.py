@@ -14,59 +14,6 @@ STANDARD_EXTENSIONS = (
 # Unfortunately split out from the class at the moment to allow rendering with
 # several processes via `multiprocessing`.
 # TODO: re-implement within the class if possible?
-def _gae_render_path(args):
-    client, path, view = args
-    if not client:
-        client = Client()
-    if path:
-        DEPLOY_DIR = settings.MEDUSA_DEPLOY_DIR
-        realpath = path
-        if path.startswith("/"):
-            realpath = realpath[1:]
-
-        if path.endswith("/"):
-            needs_ext = True
-        else:
-            needs_ext = False
-
-        output_dir = os.path.abspath(os.path.join(
-            DEPLOY_DIR,
-            "deploy",
-            os.path.dirname(realpath)
-        ))
-        if not os.path.exists(output_dir):
-            os.makedirs(output_dir)
-        outpath = os.path.join(DEPLOY_DIR, "deploy", realpath)
-
-        resp = client.get(path)
-        if resp.status_code != 200:
-            raise Exception
-
-        mimetype = resp['Content-Type'].split(";", 1)[0]
-
-        if needs_ext:
-            outpath += "index.html"
-
-        print(outpath)
-        with open(outpath, 'w') as f:
-            f.write(resp.content)
-
-        rel_outpath = outpath.replace(
-            os.path.abspath(DEPLOY_DIR) + "/",
-            ""
-        )
-        if ((not needs_ext) and path.endswith(STANDARD_EXTENSIONS))\
-        or (mimetype == "text/html"):
-            # Either has obvious extension OR it's a regular HTML file.
-            return None
-        return "# req since this url does not end in an extension and also\n"\
-               "# has non-html mime: %s\n"\
-               "- url: %s\n"\
-               "  static_files: %s\n"\
-               "  upload: %s\n"\
-               "  mime_type: %s\n\n" % (
-                    mimetype, path, rel_outpath, rel_outpath, mimetype
-               )
 
 
 class GAEStaticSiteRenderer(BaseStaticSiteRenderer):
@@ -79,7 +26,43 @@ class GAEStaticSiteRenderer(BaseStaticSiteRenderer):
       * MEDUSA_DEPLOY_DIR
     """
     def render_path(self, path=None, view=None):
-        return _gae_render_path((self.client, path, view))
+        if not path:
+            return None
+
+        DEPLOY_DIR = settings.MEDUSA_DEPLOY_DIR
+
+        resp = self._render(path)
+
+        # Force get_outpath to always use index.html by passing text/html
+        # mimetype
+        rel_outpath = os.path.join("deploy",
+                                   self.get_outpath(path, 'text/html'))
+        outpath = os.path.join(self.DEPLOY_DIR, rel_outpath)
+
+        # Ensure the directories exist
+        try:
+            os.makedirs(os.path.dirname(outpath))
+        except OSError:
+            pass
+
+        print(outpath)
+        with open(outpath, 'w') as f:
+            f.write(resp.content)
+
+        if (resp['Content-Type'].startswith('text/html') or
+            (not path.endswith('/') and
+             outpath.endswith(STANDARD_EXTENSIONS))):
+            # Either has obvious extension OR it's a regular HTML file
+            return None
+
+        return "# req since this url does not end in an extension and also\n"\
+               "# has non-html mime: %s\n"\
+               "- url: %s\n"\
+               "  static_files: %s\n"\
+               "  upload: %s\n"\
+               "  mime_type: %s\n\n" % (
+                    mimetype, path, rel_outpath, rel_outpath, mimetype
+               )
 
     @classmethod
     def initialize_output(cls):
