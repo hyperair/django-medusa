@@ -95,12 +95,12 @@ class BaseStaticSiteRenderer(object):
         if not path.endswith('/'):
             return path
 
-        mime = content_type.split(';', 1)[0]
-
         return os.path.join(path, cls.get_dirsuffix(content_type))
 
     @classmethod
     def get_dirsuffix(cls, content_type):
+        mime = content_type.split(';', 1)[0]
+
         return ('index' +
                 (COMMON_MIME_MAPS.get(mime, mimetypes.guess_extension(mime)) or
                  '.html'))
