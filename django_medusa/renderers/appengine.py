@@ -49,7 +49,9 @@ class GAEStaticSiteRenderer(BaseStaticSiteRenderer):
         with open(outpath, 'w') as f:
             f.write(resp.content)
 
-        if (resp['Content-Type'].startswith('text/html') or
+        mimetype = resp['Content-Type'].split(';', 1)[0]
+
+        if (mimetype == 'text/html' or
             (not path.endswith('/') and
              outpath.endswith(STANDARD_EXTENSIONS))):
             # Either has obvious extension OR it's a regular HTML file
