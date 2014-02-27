@@ -140,4 +140,4 @@ class PageGenerator(object):
         self.renderer = renderer
 
     def __call__(self, args):
-        self.renderer.render_path(*args)
+        return self.renderer.render_path(*args)
