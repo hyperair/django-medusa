@@ -2,6 +2,7 @@ from __future__ import print_function
 import imp
 from django.conf import settings
 from importlib import import_module
+import logging
 import sys
 
 
@@ -54,3 +55,12 @@ def get_static_renderers():
             continue
         print ("Found renderers for '%s'..." % app)
     return tuple(renderers)
+
+
+class ProxyLogHandler(logging.Handler):
+    def __init__(self, logger):
+        super(ProxyLogHandler, self).__init__()
+        self.__logger = logger
+
+    def emit(self, record):
+        self.__logger.handle(record)

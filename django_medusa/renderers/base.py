@@ -1,10 +1,12 @@
 from __future__ import print_function
 from django.conf import settings
 from django.test.client import Client
+import logging
 import mimetypes
 import os
 
 __all__ = ['COMMON_MIME_MAPS', 'BaseStaticSiteRenderer']
+logger = logging.getLogger(__name__)
 
 
 # Since mimetypes.get_extension() gets the "first known" (alphabetically),
@@ -66,6 +68,13 @@ class BaseStaticSiteRenderer(object):
         raise NotImplementedError
 
     @property
+    def logger(self):
+        if settings.MEDUSA_MULTITHREAD:
+            return logging.getLogger(__name__ + '.__multiprocessing__')
+        else:
+            return logger
+
+    @property
     def paths(self):
         """ Property that memoizes get_paths. """
         p = getattr(self, "_paths", None)
@@ -110,23 +119,35 @@ class BaseStaticSiteRenderer(object):
         raise NotImplementedError
 
     def generate(self):
-        if getattr(settings, "MEDUSA_MULTITHREAD", False):
-            from multiprocessing import Pool, cpu_count
+        arglist = ((path, None) for path in self.paths)
 
-            print("Generating with up to %d processes..." % cpu_count())
-            pool = Pool(cpu_count())
+        if getattr(settings, "MEDUSA_MULTITHREAD", False):
+            from multiprocessing import Pool, cpu_count, Queue
+            from logutils.queue import QueueHandler, QueueListener
+            from django_medusa.utils import ProxyLogHandler
+
+            logqueue = Queue()
+            mplogger = logging.getLogger(__name__ + '.__multiprocessing__')
+            mplogger.setLevel(logging.DEBUG)
+            mplogger.addHandler(QueueHandler(logqueue))
+            mplogger.propagate = False
+
+            mploglistener = QueueListener(logqueue,
+                                          ProxyLogHandler(logger))
+            mploglistener.start()
             generator = PageGenerator(self)
 
-            retval = pool.map(
-                generator,
-                ((path, None) for path in self.paths),
-                chunksize=1
-            )
+            logger.info("Generating with up to %s processes...", cpu_count())
+            pool = Pool(cpu_count())
+            retval = pool.map(generator, arglist, chunksize=1)
             pool.close()
+            mploglistener.stop()
 
         else:
             self.client = Client()
-            retval = map(self.render_path, self.paths)
+            generator = PageGenerator(self)
+
+            retval = map(generator, arglist)
 
         return retval
 
@@ -140,4 +161,14 @@ class PageGenerator(object):
         self.renderer = renderer
 
     def __call__(self, args):
-        return self.renderer.render_path(*args)
+        path = args[0]
+        logger = self.renderer.logger
+
+        try:
+            logger.info("Generating %s...", path)
+            retval = self.renderer.render_path(*args)
+            logger.info("Generated %s successfully", path)
+            return retval
+
+        except:
+            self.logger.error("Could not generate %s", path, exc_info=True)
