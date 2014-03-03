@@ -1,12 +1,12 @@
 from __future__ import print_function
 from django.conf import settings
 from django.test.client import Client
-import logging
+from django_medusa.log import get_logger
 import mimetypes
 import os
 
 __all__ = ['COMMON_MIME_MAPS', 'BaseStaticSiteRenderer']
-logger = logging.getLogger(__name__)
+logger = get_logger()
 
 
 # Since mimetypes.get_extension() gets the "first known" (alphabetically),
@@ -68,13 +68,6 @@ class BaseStaticSiteRenderer(object):
         raise NotImplementedError
 
     @property
-    def logger(self):
-        if settings.MEDUSA_MULTITHREAD:
-            return logging.getLogger(__name__ + '.__multiprocessing__')
-        else:
-            return logger
-
-    @property
     def paths(self):
         """ Property that memoizes get_paths. """
         p = getattr(self, "_paths", None)
@@ -123,25 +116,13 @@ class BaseStaticSiteRenderer(object):
 
         if getattr(settings, "MEDUSA_MULTITHREAD", False):
             from multiprocessing import Pool, cpu_count, Queue
-            from logutils.queue import QueueHandler, QueueListener
-            from django_medusa.utils import ProxyLogHandler
 
-            logqueue = Queue()
-            mplogger = logging.getLogger(__name__ + '.__multiprocessing__')
-            mplogger.setLevel(logging.DEBUG)
-            mplogger.addHandler(QueueHandler(logqueue))
-            mplogger.propagate = False
-
-            mploglistener = QueueListener(logqueue,
-                                          ProxyLogHandler(logger))
-            mploglistener.start()
             generator = PageGenerator(self)
 
             logger.info("Generating with up to %s processes...", cpu_count())
             pool = Pool(cpu_count())
             retval = pool.map(generator, arglist, chunksize=1)
             pool.close()
-            mploglistener.stop()
 
         else:
             self.client = Client()
@@ -162,7 +143,6 @@ class PageGenerator(object):
 
     def __call__(self, args):
         path = args[0]
-        logger = self.renderer.logger
 
         try:
             logger.info("Generating %s...", path)
@@ -171,4 +151,4 @@ class PageGenerator(object):
             return retval
 
         except:
-            self.logger.error("Could not generate %s", path, exc_info=True)
+            logger.error("Could not generate %s", path, exc_info=True)
