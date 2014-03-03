@@ -59,7 +59,7 @@ def get_static_renderers():
 
 class ProxyLogHandler(logging.Handler):
     def __init__(self, logger):
-        super(ProxyLogHandler, self).__init__()
+        logging.Handler.__init__(self)
         self.__logger = logger
 
     def emit(self, record):
