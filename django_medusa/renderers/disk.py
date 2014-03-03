@@ -4,6 +4,9 @@ from django.test.client import Client
 import mimetypes
 import os
 from .base import COMMON_MIME_MAPS, BaseStaticSiteRenderer
+from ..log import get_logger
+
+logger = get_logger()
 
 __all__ = ('DiskStaticSiteRenderer', )
 
@@ -25,6 +28,6 @@ class DiskStaticSiteRenderer(BaseStaticSiteRenderer):
             except OSError:
                 pass
 
-            print(outpath)
+            logger.info("Saving file to: %s", outpath)
             with open(outpath, 'w') as f:
                 f.write(resp.content)

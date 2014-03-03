@@ -1,15 +1,18 @@
 from __future__ import print_function
 from django.conf import settings
 from django.test.client import Client
+from ..log import get_logger
 from .base import BaseStaticSiteRenderer
 import os
+
+logger = get_logger()
+
 
 __all__ = ('GAEStaticSiteRenderer', )
 
 STANDARD_EXTENSIONS = (
     'htm', 'html', 'css', 'xml', 'json', 'js', 'yaml', 'txt'
 )
-
 
 # Unfortunately split out from the class at the moment to allow rendering with
 # several processes via `multiprocessing`.
@@ -45,7 +48,8 @@ class GAEStaticSiteRenderer(BaseStaticSiteRenderer):
         except OSError:
             pass
 
-        print(outpath)
+        logger.info("Saving file to %s", outpath)
+
         with open(outpath, 'w') as f:
             f.write(resp.content)
 
@@ -68,7 +72,7 @@ class GAEStaticSiteRenderer(BaseStaticSiteRenderer):
 
     @classmethod
     def initialize_output(cls):
-        print("Initializing output directory with `app.yaml`.")
+        logger.info("Initializing output directory with `app.yaml`")
 
         # Initialize the MEDUSA_DEPLOY_DIR with an `app.yaml` and `deploy`
         # directory which stores the static files on disk.
@@ -98,7 +102,7 @@ class GAEStaticSiteRenderer(BaseStaticSiteRenderer):
 
     @classmethod
     def finalize_output(cls):
-        print("Finalizing `app.yaml`.")
+        logger.info("Finalizing app.yaml")
 
         DEPLOY_DIR = settings.MEDUSA_DEPLOY_DIR
         app_yaml = os.path.abspath(os.path.join(
@@ -141,9 +145,9 @@ class GAEStaticSiteRenderer(BaseStaticSiteRenderer):
         )
         app_yaml_f.close()
 
-        print("You should now be able to deploy this to Google App Engine")
-        print("by performing the following command:")
-        print("appcfg.py update %s" % os.path.abspath(DEPLOY_DIR))
+        logger.info("You should now be able to deploy this to "
+                    "Google App Engine by performing the following command:\n"
+                    "appcfg.py update %s", os.path.abspath(DEPLOY_DIR))
 
     def generate(self):
         DEPLOY_DIR = settings.MEDUSA_DEPLOY_DIR
