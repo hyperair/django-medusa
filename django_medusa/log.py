@@ -28,7 +28,13 @@ def get_logger():
     return mplogger
 
 def finalize_logger():
-    listener.stop()
+    global listener
+
+    if listener is not None:
+        mplogger = get_logger()
+        mplogger.setup_done = False
+        listener.stop()
+        listener = None
 
 def get_base_logger():
     return logging.getLogger(__name__)
