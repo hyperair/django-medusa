@@ -6,8 +6,6 @@ import os
 from .base import COMMON_MIME_MAPS, BaseStaticSiteRenderer
 from ..log import get_logger
 
-logger = get_logger()
-
 __all__ = ('DiskStaticSiteRenderer', )
 
 
@@ -28,6 +26,6 @@ class DiskStaticSiteRenderer(BaseStaticSiteRenderer):
             except OSError:
                 pass
 
-            logger.info("Saving file to: %s", outpath)
+            self.logger.info("Saving file to: %s", outpath)
             with open(outpath, 'w') as f:
                 f.write(resp.content)

@@ -9,8 +9,6 @@ from django.test.client import Client
 from ..log import get_logger
 from .base import BaseStaticSiteRenderer
 
-logger = get_logger()
-
 __all__ = ('S3StaticSiteRenderer', )
 
 
@@ -66,6 +64,7 @@ class S3StaticSiteRenderer(BaseStaticSiteRenderer):
 
     @classmethod
     def initialize_output(cls):
+        super(S3StaticSiteRenderer, self).initialize_output()
         cls.all_generated_paths = []
 
     def render_path(self, path=None, view=None):
@@ -98,8 +97,8 @@ class S3StaticSiteRenderer(BaseStaticSiteRenderer):
             else:
                 message = "Skipping"
 
-        logger.info("%s http://%s%s",
-                    message, bucket.get_website_endpoint(), path)
+        self.logger.info("%s http://%s%s",
+                         message, bucket.get_website_endpoint(), path)
         temp_file.close()
         return [path, outpath]
 
@@ -138,4 +137,5 @@ class S3StaticSiteRenderer(BaseStaticSiteRenderer):
                 settings.AWS_DISTRIBUTION_ID,
                 cls.all_generated_paths
             )
-            logger.info("Invalidation request ID: %s", req.id)
+            cls.logger.info("Invalidation request ID: %s", req.id)
+        super(S3StaticSiteRenderer, self).finalize_output()

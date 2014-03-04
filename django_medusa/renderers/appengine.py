@@ -5,9 +5,6 @@ from ..log import get_logger
 from .base import BaseStaticSiteRenderer
 import os
 
-logger = get_logger()
-
-
 __all__ = ('GAEStaticSiteRenderer', )
 
 STANDARD_EXTENSIONS = (
@@ -48,7 +45,7 @@ class GAEStaticSiteRenderer(BaseStaticSiteRenderer):
         except OSError:
             pass
 
-        logger.info("Saving file to %s", outpath)
+        self.logger.info("Saving file to %s", outpath)
 
         with open(outpath, 'w') as f:
             f.write(resp.content)
@@ -72,7 +69,8 @@ class GAEStaticSiteRenderer(BaseStaticSiteRenderer):
 
     @classmethod
     def initialize_output(cls):
-        logger.info("Initializing output directory with `app.yaml`")
+        super(GAEStaticSiteRenderer, cls).initialize_output()
+        cls.logger.info("Initializing output directory with `app.yaml`")
 
         # Initialize the MEDUSA_DEPLOY_DIR with an `app.yaml` and `deploy`
         # directory which stores the static files on disk.
@@ -102,7 +100,7 @@ class GAEStaticSiteRenderer(BaseStaticSiteRenderer):
 
     @classmethod
     def finalize_output(cls):
-        logger.info("Finalizing app.yaml")
+        cls.logger.info("Finalizing app.yaml")
 
         DEPLOY_DIR = settings.MEDUSA_DEPLOY_DIR
         app_yaml = os.path.abspath(os.path.join(
@@ -145,9 +143,12 @@ class GAEStaticSiteRenderer(BaseStaticSiteRenderer):
         )
         app_yaml_f.close()
 
-        logger.info("You should now be able to deploy this to "
-                    "Google App Engine by performing the following command:\n"
-                    "appcfg.py update %s", os.path.abspath(DEPLOY_DIR))
+        cls.logger.info("You should now be able to deploy this to "
+                        "Google App Engine by performing the following "
+                        "command:\n"
+                        "appcfg.py update %s", os.path.abspath(DEPLOY_DIR))
+
+        super(GAEStaticSiteRenderer, cls).finalize_output()
 
     def generate(self):
         DEPLOY_DIR = settings.MEDUSA_DEPLOY_DIR

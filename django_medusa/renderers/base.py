@@ -1,12 +1,11 @@
 from __future__ import print_function
 from django.conf import settings
 from django.test.client import Client
-from django_medusa.log import get_logger
+from django_medusa.log import get_logger, finalize_logger
 import mimetypes
 import os
 
 __all__ = ['COMMON_MIME_MAPS', 'BaseStaticSiteRenderer']
-logger = get_logger()
 
 
 # Since mimetypes.get_extension() gets the "first known" (alphabetically),
@@ -48,7 +47,9 @@ class BaseStaticSiteRenderer(object):
         Management command calls this once before iterating over all
         renderer instances.
         """
-        pass
+        # Store logger on BaseStaticSiteRenderer so that all derivative classes
+        # can access this instance.
+        BaseStaticSiteRenderer.logger = get_logger()
 
     @classmethod
     def finalize_output(cls):
@@ -61,7 +62,8 @@ class BaseStaticSiteRenderer(object):
         Management command calls this once after iterating over all
         renderer instances.
         """
-        pass
+        finalize_logger()
+        BaseStaticSiteRenderer.logger = None
 
     def get_paths(self):
         """ Override this in a subclass to define the URLs to process """
@@ -119,7 +121,8 @@ class BaseStaticSiteRenderer(object):
 
             generator = PageGenerator(self)
 
-            logger.info("Generating with up to %s processes...", cpu_count())
+            self.logger.info("Generating with up to %s processes...",
+                             cpu_count())
             pool = Pool(cpu_count())
             retval = pool.map(generator, arglist, chunksize=1)
             pool.close()
@@ -143,6 +146,7 @@ class PageGenerator(object):
 
     def __call__(self, args):
         path = args[0]
+        logger = self.renderer.logger
 
         try:
             logger.info("Generating %s...", path)
