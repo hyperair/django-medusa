@@ -1,6 +1,14 @@
 from django.conf import settings
 import logging
-from .utils import ProxyLogHandler
+
+
+class ProxyLogHandler(logging.Handler):
+    def __init__(self, logger):
+        logging.Handler.__init__(self)
+        self.__logger = logger
+
+    def emit(self, record):
+        self.__logger.handle(record)
 
 listener = None
 

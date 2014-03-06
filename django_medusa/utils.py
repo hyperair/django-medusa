@@ -2,13 +2,15 @@ from __future__ import print_function
 import imp
 from django.conf import settings
 from importlib import import_module
-import logging
 import sys
+
+from .log import get_logger
 
 
 def get_static_renderers():
     module_name = 'renderers'
     renderers = []
+    logger = get_logger()
 
     modules_to_check = []
 
@@ -34,33 +36,27 @@ def get_static_renderers():
             import_module(app)
             app_path = sys.modules[app].__path__
         except AttributeError:
-            print("Skipping app '%s'... (Not found)" % app)
+            logger.error("Skipping app '%s'... (Not found)", app)
             continue
         try:
             imp.find_module(module_name, app_path)
         except ImportError:
-            print("Skipping app '%s'... (No 'renderers.py')" % app)
+            logger.info("Skipping app '%s'... (No 'renderers.py')", app)
             continue
         try:
             app_render_module = import_module('%s.%s' % (app, module_name))
             if hasattr(app_render_module, "renderers"):
                 renderers += getattr(app_render_module, module_name)
             else:
-                print("Skipping app '%s'... ('%s.renderers' does not contain "\
-                      "'renderers' var (list of render classes)" % (app, app))
+                logger.error("Skipping app '%s'... "
+                             "('%s.renderers' does not contain "
+                             "'renderers' var (list of render classes)",
+                             app, app)
         except AttributeError:
-            print("Skipping app '%s'... (Error importing '%s.renderers')" % (
-                app, app
-            ))
+            logger.error("Skipping app '%s'... (Error importing "
+                         "'%s.renderers')", app, app,
+                         exc_info=True)
             continue
-        print ("Found renderers for '%s'..." % app)
+        logger.info("Found renderers for '%s'...", app)
+
     return tuple(renderers)
-
-
-class ProxyLogHandler(logging.Handler):
-    def __init__(self, logger):
-        logging.Handler.__init__(self)
-        self.__logger = logger
-
-    def emit(self, record):
-        self.__logger.handle(record)
